@@ -244,6 +244,40 @@ function deleteDepartment() {
     });
 }
 
+// Update manager for employee
+function updateEmployeeManager() {
+    pool.query('SELECT id, CONCAT(first_name, \' \', last_name) AS name FROM employee', (err, employees) => {
+        if (err) { return console.log(err); }
+
+        const employeeChoices = employees.rows.map(emp => ({
+            name: emp.name,
+            value: emp.id
+        }));
+
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employeeId',
+                message: 'Select an employee:',
+                choices: employeeChoices
+            },
+            {
+                type: 'list',
+                name: 'managerId',
+                message: 'Select the new manager:',
+                choices: [{ name: 'None', value: null }].concat(employeeChoices)
+            }
+        ]).then(answers => {
+            // Using UPDATE
+            const sqlQuery = 'UPDATE employee SET manager_id = $1 WHERE id = $2';
+            pool.query(sqlQuery, [answers.managerId, answers.employeeId], (err, res) => {
+                if (err) { return console.log(err); }
+                console.log("Employee's manager updated!");
+                beginPrompts();
+            });
+        });
+    });
+}
 
 function beginPrompts() {
     // Inquirer Prompts
