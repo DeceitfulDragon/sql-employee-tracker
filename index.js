@@ -12,7 +12,7 @@ const pool = new Pool({
 
 pool.connect();
 
-// VIEW ALL EMPLOYEES
+// View all employees
 function viewEmployees() {
     console.log("\n");
     // Query to get and add manager to the employee table
@@ -39,11 +39,11 @@ LEFT JOIN
     beginPrompts();
 }
 
-// VIEW EMPLOYEES BY DEPARTMENT
+// View employees by department
 function viewEmployeesByDepartment() {
     // Query to fill the choice list for an inquirer prompt
     pool.query('SELECT id, name FROM department', (err, res) => {
-        if (err) { console.log(err); }
+        if (err) { return console.log(err); }
 
         // Grabbing departments to use as choices in the prompt
         const departments = res.rows.map(department => ({
@@ -59,7 +59,7 @@ function viewEmployeesByDepartment() {
             choices: departments
         }]).then((answer) => {
             // Query to get all employees from the selected department
-            const sql = `
+            const sqlQuery = `
             SELECT
                 emp.id AS employee_id,
                 emp.first_name,
@@ -82,8 +82,8 @@ function viewEmployeesByDepartment() {
                 emp.last_name, emp.first_name;
             `;
 
-            pool.query(sql, [answer.departmentId], (err, res) => {
-                if (err) { console.log(err); }
+            pool.query(sqlQuery, [answer.departmentId], (err, res) => {
+                if (err) { return console.log(err); }
                 console.log("\n");
                 console.table(res.rows);
                 beginPrompts();
@@ -92,7 +92,7 @@ function viewEmployeesByDepartment() {
     });
 }
 
-// VIEW EMPLOYEES BY MANAGER
+// View employees by manager
 function viewEmployeesByManager() {
     // Query to populate the choice list for an inquirer prompt with managers
     const managerQuery = `
@@ -103,7 +103,7 @@ function viewEmployeesByManager() {
     `;
 
     pool.query(managerQuery, (err, res) => {
-        if (err) { console.log(err); }
+        if (err) { return console.log(err); }
 
         // Extracting managers to use as choices in the prompt
         const managers = res.rows.map(manager => ({
@@ -119,7 +119,7 @@ function viewEmployeesByManager() {
             choices: managers
         }]).then((answer) => {
             // Query to get all employees under the selected manager
-            const sql = `
+            const sqlQuery = `
                 SELECT
                     emp.id AS employee_id,
                     emp.first_name,
@@ -142,11 +142,8 @@ function viewEmployeesByManager() {
                     emp.last_name, emp.first_name;
             `;
 
-            pool.query(sql, [answer.managerId], (err, res) => {
-                if (err) {
-                    console.log(err);
-                    return;
-                }
+            pool.query(sqlQuery, [answer.managerId], (err, res) => {
+                if (err) { return console.log(err); }
                 console.log("\n");
                 console.table(res.rows);
                 beginPrompts();
@@ -163,7 +160,7 @@ function viewRoles() {
         ORDER BY role.id;
     `;
     pool.query(query, (err, res) => {
-        if (err) { console.log(err); }
+        if (err) { return console.log(err); }
         console.table(res.rows);
         beginPrompts();
     });
@@ -172,10 +169,7 @@ function viewRoles() {
 // Add a role
 function addRole() {
     pool.query('SELECT id, name FROM department', (err, results) => {
-        if (err) {
-            console.log(err);
-            return;
-        }
+        if (err) { return console.log(err); }
         const departments = results.rows.map(dep => ({
             name: dep.name,
             value: dep.id
@@ -198,16 +192,16 @@ function addRole() {
                 choices: departments
             }
         ]).then(answers => {
-            const sql = 'INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)';
-            pool.query(sql, [answers.title, answers.salary, answers.departmentId], (err, res) => {
-                if (err) { console.log(err); }
-                console.log("New role added successfully.");
+            const sqlQuery = 'INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)';
+            pool.query(sqlQuery, [answers.title, answers.salary, answers.departmentId], (err, res) => {
+                if (err) { return console.log(err); }
+                console.log("New role added!");
                 beginPrompts();
             });
         });
     });
 }
-
+// Add a department
 function addDepartment() {
     inquirer.prompt({
         type: 'input',
@@ -215,15 +209,41 @@ function addDepartment() {
         message: 'Enter the name of the new department:'
 
     }).then(answer => {
-        const sql = 'INSERT INTO department (name) VALUES ($1)';
-        pool.query(sql, [answer.departmentName], (err, res) => {
-            if (err) { console.log(err); }
+        const sqlQuery = 'INSERT INTO department (name) VALUES ($1)';
+        pool.query(sqlQuery, [answer.departmentName], (err, res) => {
+            if (err) { return console.log(err); }
 
             console.log("New department added!");
             beginPrompts();
         });
     });
 }
+
+// Delete a department
+function deleteDepartment() {
+    pool.query('SELECT id, name FROM department', (err, results) => {
+        if (err) { return console.log(err); }
+        const departmentChoices = results.rows.map(dep => ({
+            name: dep.name,
+            value: dep.id
+        }));
+
+        inquirer.prompt({
+            type: 'list',
+            name: 'departmentId',
+            message: 'Select a department to delete:',
+            choices: departmentChoices
+        }).then(answer => {
+            const sqlQuery = 'DELETE FROM department WHERE id = $1';
+            pool.query(sqlQuery, [answer.departmentId], (err, res) => {
+                if (err) { return console.log(err); }
+                console.log("Department deleted!");
+                beginPrompts();
+            });
+        });
+    });
+}
+
 
 function beginPrompts() {
     // Inquirer Prompts
@@ -232,30 +252,16 @@ function beginPrompts() {
         name: 'choice',
         message: 'Select an action to perform:',
         choices: [
-            {
-                name: "View employees",
-                value: "VIEW_ALL"
-            },
-            {
-                name: "View employees by department",
-                value: "VIEW_DEP"
-            },
-            {
-                name: "View employees by manager",
-                value: "VIEW_MGR"
-            },
-            {
-                name: "View All Roles",
-                value: "VIEW_ROLES"
-            },
-            {
-                name: "Add New Role",
-                value: "ADD_ROLE"
-            },
-            {
-                name: "Exit Application",
-                value: "EXIT"
-            }
+            { name: "View employees", value: "VIEW_ALL" },
+            { name: "View employees by department", value: "VIEW_DEP" },
+            { name: "View employees by manager", value: "VIEW_MGR" },
+            { name: "View total budget by department", value: "VIEW_BUDGET" },
+            { name: "View all roles", value: "VIEW_ROLES" },
+            { name: "Add new role", value: "ADD_ROLE" },
+            { name: "Add new department", value: "ADD_DEP" },
+            { name: "Update employee manager", value: "UPDATE_MANAGER" },
+            { name: "Delete a department", value: "DELETE_DEP" },
+            { name: "Exit application", value: "EXIT" }
         ]
     }]).then((answers) => {
         console.log(answers);
@@ -276,6 +282,9 @@ function beginPrompts() {
             case "ADD_ROLE":
                 addRole()
                 break;
+            case "ADD_DEP":
+                addDepartment();
+                break;
             default:
                 exit();
                 break;
@@ -291,7 +300,7 @@ function exit() {
 
 // Initialize
 function init() {
-    console.log("Thank you for using HOTEL MANAGER 3000");
+    console.log("Thank you for using EMPLOYEE MANAGEMENT SYSTEM 3000! Brought to you by BERKELEY BROTHERS LLC!");
     beginPrompts();
 }
 
