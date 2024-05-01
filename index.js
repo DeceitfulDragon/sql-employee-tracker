@@ -376,6 +376,48 @@ function updateEmployeeManager() {
     });
 }
 
+// Update an employee's role
+function updateEmployeeRole() {
+    pool.query('SELECT id, CONCAT(first_name, \' \', last_name) AS name FROM employee', (err, empRes) => {
+        if (err) { return console.log(err); }
+        const employees = empRes.rows.map(emp => ({
+            name: emp.name,
+            value: emp.id
+        }));
+
+        pool.query('SELECT id, title FROM role', (err, rolesRes) => {
+            if (err) { return console.log(err); }
+            const roles = rolesRes.rows.map(role => ({
+                name: role.title,
+                value: role.id
+            }));
+
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'employeeId',
+                    message: 'Select the employee to update their role:',
+                    choices: employees
+                },
+                {
+                    type: 'list',
+                    name: 'roleId',
+                    message: 'Select the new role for the employee:',
+                    choices: roles
+                }
+            ]).then(answers => {
+                // Update the employee's role in the database
+                const sqlQuery = 'UPDATE employee SET role_id = $1 WHERE id = $2';
+                pool.query(sqlQuery, [answers.roleId, answers.employeeId], (err, res) => {
+                    if (err) { return console.log(err); }
+                    console.log("Employee role updated!");
+                    beginPrompts();
+                });
+            });
+        });
+    });
+}
+
 function beginPrompts() {
     // Inquirer Prompts
     inquirer.prompt([{
@@ -393,6 +435,7 @@ function beginPrompts() {
             { name: "Add new employee", value: "ADD_EMPLOYEE" },
             { name: "Add new department", value: "ADD_DEP" },
             { name: "Update employee manager", value: "UPDATE_MGR" },
+            { name: "Update employee role", value: "UPDATE_EMPLOYEE_ROLE" },
             { name: "Delete a department", value: "DELETE_DEP" },
             { name: "Exit application", value: "EXIT" }
         ]
@@ -426,6 +469,9 @@ function beginPrompts() {
                 break;
             case "UPDATE_MGR":
                 updateEmployeeManager();
+                break;
+            case "UPDATE_EMPLOYEE_ROLE":
+                updateEmployeeRole();
                 break;
             case "DELETE_DEP":
                 deleteDepartment();
