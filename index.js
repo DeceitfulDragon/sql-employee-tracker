@@ -94,9 +94,8 @@ function viewEmployeesByDepartment() {
 
 // View employees by manager
 function viewEmployeesByManager() {
-    // Query to populate the choice list for an inquirer prompt with managers
     const managerQuery = `
-        SELECT DISTINCT mgr.id, CONCAT(mgr.first_name, ' ', mgr.last_name) AS manager_name
+        SELECT DISTINCT mgr.id, CONCAT(mgr.first_name, ' ', mgr.last_name) AS manager_name, mgr.first_name, mgr.last_name
         FROM employee emp
         JOIN employee mgr ON emp.manager_id = mgr.id
         ORDER BY mgr.last_name, mgr.first_name;
@@ -105,7 +104,7 @@ function viewEmployeesByManager() {
     pool.query(managerQuery, (err, res) => {
         if (err) { return console.log(err); }
 
-        // Extracting managers to use as choices in the prompt
+        // Getting managers for the choices in the prompt
         const managers = res.rows.map(manager => ({
             name: manager.manager_name,
             value: manager.id
@@ -118,7 +117,7 @@ function viewEmployeesByManager() {
             message: 'Select a manager:',
             choices: managers
         }]).then((answer) => {
-            // Query to get all employees under the selected manager
+            // Get all employees under the selected manager
             const sqlQuery = `
                 SELECT
                     emp.id AS employee_id,
@@ -151,6 +150,7 @@ function viewEmployeesByManager() {
         });
     });
 }
+
 // View all roles
 function viewRoles() {
     let query = `
@@ -445,15 +445,19 @@ function beginPrompts() {
         switch (answers.choice) {
             case "VIEW_ALL":
                 viewEmployees();
+                console.log("\n");
                 break;
             case "VIEW_DEP":
                 viewEmployeesByDepartment();
+                console.log("\n");
                 break;
             case "VIEW_MGR":
                 viewEmployeesByManager();
+                console.log("\n");
                 break;
             case "VIEW_ALL_DEP":
                 viewDepartments();
+                console.log("\n");
                 break;
             case "VIEW_ROLES":
                 viewRoles();
