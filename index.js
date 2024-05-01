@@ -166,6 +166,39 @@ function viewRoles() {
     });
 }
 
+// Combine salaries to make a budget
+function viewDepartmentBudget() {
+    pool.query('SELECT id, name FROM department', (err, results) => {
+        if (err) { return console.log(err); }
+
+        const departmentChoices = results.rows.map(dep => ({
+            name: dep.name,
+            value: dep.id
+        }));
+
+        inquirer.prompt({
+            type: 'list',
+            name: 'departmentId',
+            message: 'Select a department to view its total utilized budget:',
+            choices: departmentChoices
+        }).then(answer => {
+            // Using SUM of each employee's salary in a department
+            const sqlQuery = `
+                SELECT SUM(role.salary) AS total_budget
+                FROM employee
+                JOIN role ON employee.role_id = role.id
+                WHERE role.department_id = $1;
+            `;
+            pool.query(sqlQuery, [answer.departmentId], (err, res) => {
+                if (err) { return console.log(err); }
+
+                console.log(`This department's total budget: ${res.rows[0].total_budget}`);
+                beginPrompts();
+            });
+        });
+    });
+}
+
 // Add a role
 function addRole() {
     pool.query('SELECT id, name FROM department', (err, results) => {
@@ -314,10 +347,22 @@ function beginPrompts() {
                 viewRoles();
                 break;
             case "ADD_ROLE":
-                addRole()
+                addRole();
                 break;
             case "ADD_DEP":
                 addDepartment();
+                break;
+            case "UPDATE_MANAGER":
+                updateEmployeeManager();
+                break;
+            case "DELETE_DEP":
+                deleteDepartment();
+                break;
+            case "VIEW_BUDGET":
+                viewDepartmentBudget();
+                break;
+            case "EXIT":
+                exit();
                 break;
             default:
                 exit();
