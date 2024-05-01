@@ -27,4 +27,4 @@ This repository should show that I can properly write a CMS using Node, Inquirer
 ![Choices screenshot](screenshot2.png)
 
 ## Video Link
-![Usage Video Link](https://drive.google.com/file/d/17yUHrjWiLDOrsBj0Wgzn7iZif8h0lCC9/view?usp=drive_link)
+[Usage Video Link](https://drive.google.com/file/d/17yUHrjWiLDOrsBj0Wgzn7iZif8h0lCC9/view?usp=drive_link)
