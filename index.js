@@ -166,6 +166,17 @@ function viewRoles() {
     });
 }
 
+// View all departments
+function viewDepartments() {
+    const query = 'SELECT id, name FROM department ORDER BY id';
+    pool.query(query, (err, res) => {
+        if (err) { return console.log(err); }
+        console.table(res.rows);
+        beginPrompts();
+    });
+}
+
+
 // Combine salaries to make a budget
 function viewDepartmentBudget() {
     pool.query('SELECT id, name FROM department', (err, results) => {
@@ -234,6 +245,59 @@ function addRole() {
         });
     });
 }
+
+// Add an employee
+function addEmployee() {
+    pool.query('SELECT id, title FROM role', (err, rolesRes) => {
+        if (err) { return console.log(err); }
+        const roles = rolesRes.rows.map(role => ({
+            name: role.title,
+            value: role.id
+        }));
+
+        pool.query('SELECT id, CONCAT(first_name, \' \', last_name) AS name FROM employee WHERE manager_id IS NULL', (err, managersRes) => {
+            if (err) { return console.log(err); }
+            const managers = managersRes.rows.map(manager => ({
+                name: manager.name,
+                value: manager.id
+            }));
+            managers.unshift({ name: 'None', value: null });
+
+            inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'firstName',
+                    message: 'Enter the first name of the employee:'
+                },
+                {
+                    type: 'input',
+                    name: 'lastName',
+                    message: 'Enter the last name of the employee:'
+                },
+                {
+                    type: 'list',
+                    name: 'roleId',
+                    message: 'Select the role for the employee:',
+                    choices: roles
+                },
+                {
+                    type: 'list',
+                    name: 'managerId',
+                    message: 'Select the manager for the employee:',
+                    choices: managers
+                }
+            ]).then(answers => {
+                const sqlQuery = 'INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)';
+                pool.query(sqlQuery, [answers.firstName, answers.lastName, answers.roleId, answers.managerId], (err, res) => {
+                    if (err) { return console.log(err); }
+                    console.log("New employee added!");
+                    beginPrompts();
+                });
+            });
+        });
+    });
+}
+
 // Add a department
 function addDepartment() {
     inquirer.prompt({
@@ -322,11 +386,13 @@ function beginPrompts() {
             { name: "View employees", value: "VIEW_ALL" },
             { name: "View employees by department", value: "VIEW_DEP" },
             { name: "View employees by manager", value: "VIEW_MGR" },
+            { name: "View all departments", value: "VIEW_ALL_DEP" },
             { name: "View total budget by department", value: "VIEW_BUDGET" },
             { name: "View all roles", value: "VIEW_ROLES" },
             { name: "Add new role", value: "ADD_ROLE" },
+            { name: "Add new employee", value: "ADD_EMPLOYEE" },
             { name: "Add new department", value: "ADD_DEP" },
-            { name: "Update employee manager", value: "UPDATE_MANAGER" },
+            { name: "Update employee manager", value: "UPDATE_MGR" },
             { name: "Delete a department", value: "DELETE_DEP" },
             { name: "Exit application", value: "EXIT" }
         ]
@@ -343,16 +409,22 @@ function beginPrompts() {
             case "VIEW_MGR":
                 viewEmployeesByManager();
                 break;
+            case "VIEW_ALL_DEP":
+                viewDepartments();
+                break;
             case "VIEW_ROLES":
                 viewRoles();
                 break;
             case "ADD_ROLE":
                 addRole();
                 break;
+            case "ADD_EMPLOYEE":
+                addEmployee();
+                break;
             case "ADD_DEP":
                 addDepartment();
                 break;
-            case "UPDATE_MANAGER":
+            case "UPDATE_MGR":
                 updateEmployeeManager();
                 break;
             case "DELETE_DEP":
